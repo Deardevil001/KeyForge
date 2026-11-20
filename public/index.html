@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090d1b">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/images/favicon-192.png">
+  <meta name="description" content="KeyForge secure key management portal">
+  <title>KeyForge</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <!-- Authentication -->
+  <div class="auth" id="authView">
+    <div class="authbox">
+      <img src="/images/keyforge-wordmark.png" alt="KEYFORGE — Key Management System" class="brand-wordmark">
+      <h1>KEYFORGE</h1>
+      <p class="muted">Secure key management portal</p>
+
+      <div class="tabs" role="tablist" aria-label="Authentication">
+        <button class="tab active" type="button" data-auth="login" role="tab" aria-selected="true">Sign in</button>
+        <button class="tab" type="button" data-auth="register" role="tab" aria-selected="false">Create account</button>
+      </div>
+
+      <form id="loginForm">
+        <label>
+          Email
+          <input name="email" type="email" required autocomplete="email">
+        </label>
+
+        <label>
+          Password
+          <input name="password" type="password" required autocomplete="current-password">
+        </label>
+
+        <p class="auth-forgot"><a href="/forgot-password.html">Forgot password?</a></p>
+        <button class="primary wide" type="submit">Sign in</button>
+      </form>
+
+      <form id="registerForm" class="hide">
+        <label>
+          Display name
+          <input name="name" type="text" required minlength="2" maxlength="80" autocomplete="name">
+        </label>
+
+        <label>
+          Email
+          <input name="email" type="email" required autocomplete="email">
+        </label>
+
+        <label>
+          Password
+          <input name="password" type="password" required minlength="10" autocomplete="new-password">
+        </label>
+
+        <button class="primary wide" type="submit">Create account</button>
+      </form>
+
+      <div class="error" id="authError" role="alert" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <!-- Main application -->
+  <div class="app hide" id="appView">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-identity">
+          <img src="/images/keyforge-mark.png" alt="" class="logo-img mini">
+          <b>KEYFORGE</b>
+        </div>
+
+        <button
+          class="menu-toggle"
+          id="menuToggle"
+          type="button"
+          aria-label="Open navigation menu"
+          aria-expanded="false"
+          aria-controls="nav"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+
+      <div class="navlabel">WORKSPACE</div>
+
+      <nav id="nav" aria-label="Main navigation">
+        <button class="active" type="button" data-page="overview">▦　Overview</button>
+        <button type="button" data-page="keys">⌁　My Keys</button>
+        <button type="button" data-page="profile">♙　My Profile</button>
+        <button class="adminOnly hide" type="button" data-page="users">♧　User Profiles</button>
+        <button class="adminOnly hide" type="button" data-page="allkeys">▤　All Keys</button>
+        <button class="adminOnly hide" type="button" data-page="activity">◷　Activity Log</button>
+      </nav>
+
+      <div class="sidefoot">
+        <span class="dot" aria-hidden="true"></span>
+        Connected to KeyForge
+      </div>
+    </aside>
+
+    <main>
+      <header>
+        <div class="breadcrumb">
+          <span class="muted">Workspace / </span>
+          <b id="pageTitle">Overview</b>
+        </div>
+
+        <div class="account">
+          <label class="theme-control" for="themeSelect">
+            <span class="muted"></span>
+            <select id="themeSelect" aria-label="Choose color theme">
+              <option value="dark">Dark </option>
+              <option value="light">Light </option>
+            </select>
+          </label>
+
+          <span id="accountName"></span>
+          <span class="role" id="roleLabel"></span>
+          <button class="ghost" type="button" id="logout">Sign out</button>
+        </div>
+      </header>
+
+      <div class="content">
+        <!-- Overview -->
+        <section class="page active" id="overview">
+          <div class="heading">
+            <div>
+              <small>KEY MANAGEMENT</small>
+              <h2 id="welcome">Overview</h2>
+              <p class="muted">Manage keys and application registrations.</p>
+            </div>
+
+            <button class="primary" type="button" id="generateTop">＋ Generate key</button>
+          </div>
+
+          <div class="stats">
+            <article><span>Total keys</span><b id="sTotal">0</b></article>
+            <article><span>Active keys</span><b id="sActive">0</b></article>
+            <article><span>Registered devices</span><b id="sDevices">0</b></article>
+            <article><span>App registrations</span><b id="sApps">0</b></article>
+          </div>
+
+          <div class="panel">
+            <div class="panelhead">
+              <h3>Recent keys</h3>
+              <button class="ghost" type="button" data-goto="keys">View all →</button>
+            </div>
+
+            <div class="tablewrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Key</th>
+                    <th>Type</th>
+                    <th>Device ID</th>
+                    <th>App ID</th>
+                    <th>Expires</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="recentRows"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- User key vault -->
+        <section class="page" id="keys">
+          <div class="heading">
+            <div>
+              <small>PERSONAL KEY VAULT</small>
+              <h2>My Keys</h2>
+              <p class="muted">Keys owned by your account.</p>
+            </div>
+
+            <button class="primary" type="button" id="generateMine">＋ Generate key</button>
+          </div>
+
+          <div class="panel">
+            <div class="toolbar">
+              <input id="keySearch" type="search" placeholder="Search key, device or app…" aria-label="Search my keys">
+
+              <select id="statusFilter" aria-label="Filter keys by status">
+                <option value="">All statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="expired">Expired</option>
+                <option value="revoked">Revoked</option>
+              </select>
+            </div>
+
+            <div class="tablewrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Key</th>
+                    <th>Type</th>
+                    <th>Device ID</th>
+                    <th>App ID</th>
+                    <th>Created</th>
+                    <th>Expires</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="keysRows"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Current user profile -->
+        <section class="page" id="profile">
+          <div class="heading">
+            <div>
+              <small>ACCOUNT</small>
+              <h2>My Profile</h2>
+              <p class="muted">Your account and key ownership details.</p>
+            </div>
+          </div>
+
+          <div class="panel profile">
+            <div class="profileicon" id="profileInitials" aria-hidden="true">U</div>
+
+            <div>
+              <h3 id="profileName"></h3>
+              <p id="profileEmail" class="muted"></p>
+              <span class="role" id="profileRole"></span>
+            </div>
+
+            <div class="profilemeta">
+              <div>
+                <small>Key generation limit</small>
+                <b id="profileLimit">—</b>
+              </div>
+
+              <div>
+                <small>Account status</small>
+                <b>Active</b>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3>My registered keys</h3>
+
+            <div class="tablewrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Key</th>
+                    <th>Device ID</th>
+                    <th>App ID</th>
+                    <th>Status</th>
+                    <th>Expiry</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="profileKeys"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Account Verification -->
+          <div class="panel verification-panel" id="accountVerificationPanel">
+            <h3>Account Verification</h3>
+
+            <p class="verification-description">
+              Generate a verification string for your account.
+              Generating a new string replaces the previous one.
+            </p>
+
+            <div class="verification-actions">
+              <button
+                class="primary"
+                type="button"
+                id="generateAccountVerification"
+              >
+                Generate
+              </button>
+
+              <button
+                class="danger"
+                type="button"
+                id="revokeAccountVerification"
+              >
+                Revoke
+              </button>
+            </div>
+
+            <div
+              id="accountVerificationResult"
+              class="verification-result hide"
+              aria-live="polite"
+            >
+              <p
+                id="accountVerificationStatus"
+                class="verification-status muted"
+              ></p>
+
+              <label for="accountVerificationString">
+                Account verification string
+              </label>
+
+              <input
+                id="accountVerificationString"
+                type="text"
+                readonly
+                autocomplete="off"
+              >
+
+              <button
+                class="secondary"
+                type="button"
+                id="copyAccountVerification"
+              >
+                Copy string
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Admin: user profiles -->
+        <section class="page adminPage" id="users">
+          <div class="heading">
+            <div>
+              <small>ADMINISTRATION</small>
+              <h2>User Profiles</h2>
+              <p class="muted">Open a user profile to inspect all keys owned by that account.</p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="toolbar">
+              <input id="userSearch" type="search" placeholder="Search users by name or email…" aria-label="Search users">
+            </div>
+
+            <div class="tablewrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Keys</th>
+                    <th>Key limit</th>
+                    <th>Status</th>
+                    <th>Profile</th>
+                  </tr>
+                </thead>
+                <tbody id="usersRows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel hide" id="userDetail">
+            <div class="panelhead">
+              <div>
+                <small>USER PROFILE</small>
+                <h3 id="detailName"></h3>
+                <span class="muted" id="detailEmail"></span>
+              </div>
+
+              <button class="ghost" type="button" id="closeDetail">← Back to users</button>
+            </div>
+
+            <div class="toolbar">
+              <label class="inline" for="detailLimit">
+                Key limit
+                <input type="number" id="detailLimit" min="0" max="1000" value="25" step="1">
+              </label>
+
+              <button class="secondary" type="button" id="saveLimit">Save limit</button>
+
+              <button class="secondary" type="button" id="toggleUnlimitedKeyAccess">
+                Enable unlimited keys
+              </button>
+
+              <button class="danger" type="button" id="toggleUser">Disable account</button>
+            </div>
+
+            <div class="tablewrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Key</th>
+                    <th>Type</th>
+                    <th>Device ID</th>
+                    <th>App ID</th>
+                    <th>Expiry</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="detailKeys"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Admin: all keys -->
+        <section class="page adminPage" id="allkeys">
+          <div class="heading">
+            <div>
+              <small>ADMINISTRATION</small>
+              <h2>All Keys</h2>
+              <p class="muted">All keys across every profile. Owner is shown for each key.</p>
+            </div>
+
+            <button class="primary" type="button" id="adminGenerate">＋ Generate key</button>
+          </div>
+
+          <div class="panel">
+            <div class="toolbar">
+              <input id="allSearch" type="search" placeholder="Search key, owner, device or app…" aria-label="Search all keys">
+
+              <select id="allStatus" aria-label="Filter all keys by status">
+                <option value="">All statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="expired">Expired</option>
+                <option value="revoked">Revoked</option>
+              </select>
+            </div>
+
+            <div class="tablewrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Key</th>
+                    <th>Owner</th>
+                    <th>Type</th>
+                    <th>Device ID</th>
+                    <th>App ID</th>
+                    <th>Expires</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="allKeysRows"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Admin activity -->
+        <section class="page adminPage" id="activity">
+          <div class="heading">
+            <div>
+              <small>AUDIT</small>
+              <h2>Activity Log</h2>
+              <p class="muted">Recent account and key events.</p>
+            </div>
+          </div>
+
+          <div class="panel" id="activityRows"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Key generation modal -->
+  <div class="modalback hide" id="keyModal">
+    <form class="modal" id="keyForm">
+      <button type="button" class="close" id="closeModal" aria-label="Close dialog">×</button>
+
+      <small>KEY CREATION</small>
+      <h2>Generate a key</h2>
+
+      <p class="muted">
+        Enter both identifiers before generating the key.
+        The key will be bound to this Device ID + App ID pair.
+      </p>
+
+      <label>
+        Device ID
+        <input
+          name="deviceId"
+          type="text"
+          required
+          minlength="1"
+          maxlength="256"
+          autocomplete="off"
+          placeholder="Enter exact Device ID"
+        >
+      </label>
+
+      <label>
+        App ID
+        <input
+          name="appId"
+          type="text"
+          required
+          minlength="1"
+          maxlength="128"
+          autocomplete="off"
+          placeholder="Example: com.example.app"
+        >
+      </label>
+
+      <div class="adminOnly hide">
+        <label>
+          Key type
+          <select name="type">
+            <option value="user">User key</option>
+            <option value="admin">Admin key</option>
+          </select>
+        </label>
+
+        <label>
+          Assign to user
+          <select name="ownerId" id="ownerSelect">
+            <option value="">My account</option>
+          </select>
+        </label>
+
+      </div>
+
+      <label>
+        Expiry date and time
+        <input name="expiresAt" type="datetime-local" readonly required>
+      </label>
+
+      <button class="primary wide" type="submit">Generate</button>
+      <div id="newKeyResult" class="keyresult hide" aria-live="polite"></div>
+    </form>
+  </div>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>
