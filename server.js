@@ -1,3 +1,4 @@
+
 import 'dotenv/config';
 
 import express from 'express';
@@ -6,7 +7,6 @@ import session from 'express-session';
 import MongoStore from 'connect-mongo';
 import helmet from 'helmet';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { rateLimit } from 'express-rate-limit';
 
 import authRoutes from './src/routes/auth.js';
@@ -17,10 +17,9 @@ import { ensureAdmin } from './src/services/bootstrap.js';
 
 const app = express();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const publicDirectory = path.join(__dirname, 'public');
+const publicDirectory = path.resolve('public');
 
+// Required environment variables.
 for (const name of [
   'MONGODB_URI',
   'SESSION_SECRET',
@@ -41,7 +40,7 @@ if (!/^[a-fA-F0-9]{64}$/.test(process.env.KEY_ENCRYPTION_SECRET)) {
   );
 }
 
-// Reuse one database connection per serverless instance.
+// Reuse MongoDB connection per serverless instance.
 let databasePromise;
 
 async function connectDatabase() {
@@ -70,7 +69,7 @@ async function connectDatabase() {
   await databasePromise;
 }
 
-// Ensure the primary database is ready before every request.
+// Ensure database is ready before every request.
 app.use(async (_req, _res, next) => {
   try {
     await connectDatabase();
@@ -98,8 +97,6 @@ app.use(express.urlencoded({
 }));
 
 // Persistent MongoDB sessions.
-// Keep the browser cookie lifetime and MongoDB TTL in sync.
-// touchAfter reduces unnecessary session-document writes.
 const SESSION_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 const sessionStore = MongoStore.create({
@@ -160,7 +157,7 @@ app.get('/', (_req, res) => {
   res.sendFile(path.join(publicDirectory, 'index.html'));
 });
 
-// Existing API routes.
+// API routes.
 app.use('/api/auth', authRoutes);
 app.use('/api/keys', keyRoutes);
 app.use('/api/account-verification', accountVerificationRoutes);
@@ -193,15 +190,21 @@ app.use((err, _req, res, _next) => {
   });
 });
 
+// Export Express app for Netlify Functions.
+export default app;
+
 // Local development support.
 if (!process.env.NETLIFY && !process.env.VERCEL) {
   const PORT = process.env.PORT || 3000;
 
-  await connectDatabase();
-
-  app.listen(PORT, () => {
-    console.log(`KeyForge running at http://localhost:${PORT}`);
-  });
+  connectDatabase()
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log(`KeyForge running at http://localhost:${PORT}`);
+      });
+    })
+    .catch((error) => {
+      console.error('Server startup failed:', error);
+      process.exit(1);
+    });
 }
-
-export default app;
