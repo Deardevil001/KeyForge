@@ -140,8 +140,20 @@ router.post('/generate', requireAuth, async (req, res, next) => {
       }
     }
 
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + ttlDays() * DAY_MS);
+   
+const now = new Date();
+const expiresAt = new Date(req.body.expiresAt);
+
+if (
+  !req.body.expiresAt ||
+  Number.isNaN(expiresAt.getTime()) ||
+  expiresAt <= now
+) {
+  return res.status(400).json({
+    error: 'Please select a valid future expiry date and time.'
+  });
+}
+
 
     const plainKey = makeKey();
 
